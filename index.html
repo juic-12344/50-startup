@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIoT & DIC: Multiple Linear Regression & Feature Selection Explorer</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Chart.js (Loaded locally to guarantee offline / network reliability) -->
+  <script src="chart.umd.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation & Global Controls -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <div class="brand-group">
+        <div class="brand-logo">
+          <i class="fa-solid fa-chart-diagram"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">
+            MultipleLR Explorer
+            <span class="badge-course">AIoT & DIC</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Problem Switcher Dropdown (+1 Point Bonus) -->
+      <div class="problem-selector-wrapper">
+        <label for="problemDropdown" class="problem-label">
+          <i class="fa-solid fa-layer-group" style="color: var(--primary-light);"></i>
+          Problem Topic:
+        </label>
+        <select id="problemDropdown" class="problem-dropdown">
+          <!-- Dynamically populated -->
+        </select>
+      </div>
+
+      <!-- Header Action Buttons (+2 Points Bonus Custom Data) -->
+      <div class="nav-actions">
+        <button id="btnOpenCustomModal" class="btn-custom-data" title="Input custom CSV URL or upload file (+2 bonus points)">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          Input Custom Dataset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Banner with Dynamic Problem Overview -->
+    <section class="hero-banner" id="heroBanner">
+      <div class="hero-top">
+        <span class="hero-dataset-tag" id="heroTag">
+          <i class="fa-solid fa-database"></i> 50 Startups
+        </span>
+        <div class="hero-pills-row">
+          <span class="hero-stat-pill" id="heroSamples"><strong>50</strong> Samples</span>
+          <span class="hero-stat-pill" id="heroFeatures"><strong>5</strong> Features</span>
+          <span class="hero-stat-pill" id="heroTarget">Target: <strong>Profit</strong></span>
+          <span class="hero-stat-pill" id="heroSweetSpot" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+            Parsimony Sweet Spot: <strong>k = 2</strong>
+          </span>
+        </div>
+      </div>
+      <h2 class="hero-title" id="heroTitle">50 Startups: Profit Optimization & Multiple Linear Regression</h2>
+      <p class="hero-desc" id="heroDesc">
+        Analyzes expenditure across R&D, Administration, and Marketing Spend with State locations (California, Florida, New York) to predict venture profit and identify the most parsimonious predictive model.
+      </p>
+    </section>
+
+    <!-- Controls Card: Method Tabs & K Steps -->
+    <section class="controls-card">
+      <div class="control-section-header">
+        <div class="control-title">
+          <i class="fa-solid fa-filter" style="color: var(--primary);"></i>
+          1. Select Feature Selection Strategy
+        </div>
+      </div>
+      <div class="method-tabs" id="methodTabs">
+        <!-- Dynamically rendered method tabs -->
+      </div>
+
+      <div class="control-section-header" style="margin-top: 10px;">
+        <div class="control-title">
+          <i class="fa-solid fa-list-ol" style="color: var(--accent-cyan);"></i>
+          2. Select Number of Features (k)
+        </div>
+      </div>
+      <div class="k-selector-row" id="kSelectorRow">
+        <!-- Dynamically rendered k buttons -->
+      </div>
+
+      <div class="active-features-card">
+        <span class="active-features-label">Selected Model Features:</span>
+        <div id="activeChipsContainer" style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <!-- Feature badges -->
+        </div>
+      </div>
+
+      <div id="parsimonyAlert" style="margin-top: 14px; font-size: 13px;">
+        <!-- Parsimony analysis text -->
+      </div>
+    </section>
+
+    <!-- KPI Metrics Grid -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-title-row">
+          <span class="metric-name">Root Mean Squared Error</span>
+          <span class="metric-badge" id="badgeRMSE">0.0%</span>
+        </div>
+        <div class="metric-value" id="valRMSE">8,198.8</div>
+        <div class="metric-sub">
+          <i class="fa-solid fa-chart-line" style="color: var(--primary-light);"></i> Test Set Prediction Error
+        </div>
+      </div>
+
+      <div class="metric-card cyan">
+        <div class="metric-title-row">
+          <span class="metric-name">Mean Absolute Error</span>
+          <span class="metric-badge">MAE</span>
+        </div>
+        <div class="metric-value" id="valMAE">6,772.5</div>
+        <div class="metric-sub">
+          <i class="fa-solid fa-bullseye" style="color: var(--accent-cyan);"></i> Average Absolute Deviation
+        </div>
+      </div>
+
+      <div class="metric-card sweet">
+        <div class="metric-title-row">
+          <span class="metric-name">Adjusted R²</span>
+          <span class="metric-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Parsimony</span>
+        </div>
+        <div class="metric-value" id="valAdjR2" style="color: #34d399;">93.24%</div>
+        <div class="metric-sub">
+          <i class="fa-solid fa-shield-halved" style="color: var(--accent-emerald);"></i> Penalizes Redundant Features
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title-row">
+          <span class="metric-name">Raw R² Score</span>
+          <span class="metric-badge">Fit</span>
+        </div>
+        <div class="metric-value" id="valR2">94.74%</div>
+        <div class="metric-sub">
+          <i class="fa-solid fa-percent" style="color: var(--primary-light);"></i> Variance Explained
+        </div>
+      </div>
+
+      <div class="metric-card alert">
+        <div class="metric-title-row">
+          <span class="metric-name">F-Statistic & Significance</span>
+          <span class="metric-badge">ANOVA</span>
+        </div>
+        <div class="metric-value" id="valFStat" style="font-size: 24px;">325.4</div>
+        <div class="metric-sub" id="subFStat">
+          <i class="fa-solid fa-asterisk" style="color: var(--accent-amber);"></i> p-value < 0.0001
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title-row">
+          <span class="metric-name">Active Complexity</span>
+          <span class="metric-badge">Ratio</span>
+        </div>
+        <div class="metric-value" id="valActiveK">2 / 5</div>
+        <div class="metric-sub" id="subActiveK">
+          <i class="fa-solid fa-cubes" style="color: var(--primary-light);"></i> 40% of Features Active
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Analytics Charts (2x2 Grid) -->
+    <section class="charts-grid-2">
+      <!-- Chart 1: RMSE by k -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>
+              <i class="fa-solid fa-chart-line" style="color: var(--primary-light);"></i>
+              RMSE by Number of Features (k)
+            </h3>
+            <p class="card-desc">Tracks test set prediction error across model complexity levels</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="rmseChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: R2 vs Adj R2 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>
+              <i class="fa-solid fa-arrow-trend-up" style="color: var(--accent-emerald);"></i>
+              R² vs. Adjusted R² Penalty Curve
+            </h3>
+            <p class="card-desc">Illustrates how Adjusted R² penalizes noisy features while Raw R² plateaus</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="r2Chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 3: Feature Coefficients / Importance -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>
+              <i class="fa-solid fa-bars-staggered" style="color: var(--primary-light);"></i>
+              Feature Coefficients (β)
+            </h3>
+            <p class="card-desc">Direction and magnitude of each active feature's contribution</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="weightsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 4: Actual vs Predicted Residuals -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>
+              <i class="fa-solid fa-chart-scatter" style="color: var(--accent-cyan);"></i>
+              Actual vs. Predicted Diagnostics
+            </h3>
+            <p class="card-desc">Test set observations plotted against the ideal 45° regression line</p>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="residualsChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mathematical Equation Section -->
+    <section class="equation-card">
+      <div class="card-header" style="margin-bottom: 12px;">
+        <div class="card-title-group">
+          <h3>
+            <i class="fa-solid fa-square-root-variable" style="color: var(--primary-light);"></i>
+            Fitted Multiple Linear Regression Equation
+          </h3>
+          <p class="card-desc">Mathematical representation based on estimated Ordinary Least Squares parameters</p>
+        </div>
+      </div>
+      <div class="equation-box" id="equationBox">
+        <!-- Rendered mathematical formula -->
+      </div>
+    </section>
+
+    <!-- Coefficients & Statistical Significance Table -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h3>
+            <i class="fa-solid fa-table" style="color: var(--primary-light);"></i>
+            Model Coefficients & Statistical Tests
+          </h3>
+          <p class="card-desc">Hypothesis testing (H₀: βⱼ = 0), standard errors, and 95% confidence intervals</p>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Feature Name</th>
+              <th>Coefficient (β)</th>
+              <th>Std. Error</th>
+              <th>t-Statistic</th>
+              <th>p-Value</th>
+              <th>95% Conf. Interval</th>
+              <th>Significance</th>
+            </tr>
+          </thead>
+          <tbody id="coefTableBody">
+            <!-- Table rows generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Live Interactive Predictor Playground -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h3>
+            <i class="fa-solid fa-calculator" style="color: var(--accent-emerald);"></i>
+            Live Interactive Predictor Playground
+          </h3>
+          <p class="card-desc">Adjust independent variables in real-time to compute the expected outcome</p>
+        </div>
+      </div>
+      <div class="predictor-layout">
+        <div class="inputs-container" id="predictorInputs">
+          <!-- Dynamic sliders and inputs -->
+        </div>
+        <div class="prediction-result-box">
+          <div class="pred-title">Predicted Target Value</div>
+          <div class="pred-val" id="predProfitOutput">$118,520.40</div>
+          <p class="pred-formula-note" id="predFormulaNote">Computed using current active parameters</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Test Set Residuals & Outliers Diagnostic -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h3>
+            <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-amber);"></i>
+            Test Set Residuals & Outlier Diagnostic
+          </h3>
+          <p class="card-desc">Evaluation of individual test predictions and identification of samples with |z| > 2</p>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Sample #</th>
+              <th>Actual Value</th>
+              <th>Predicted (Ŷ)</th>
+              <th>Residual (e = Y - Ŷ)</th>
+              <th>Standardized Residual (z)</th>
+              <th>Diagnostic Status</th>
+            </tr>
+          </thead>
+          <tbody id="outliersTableBody">
+            <!-- Outliers generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal for Custom Dataset Input (+2 Points Bonus) -->
+  <div class="modal-overlay" id="customDataModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>
+          <i class="fa-solid fa-cloud-arrow-up" style="color: var(--primary-light);"></i>
+          Input Custom Dataset (+2 Bonus Points)
+        </h3>
+        <button class="modal-close-btn" id="btnCloseCustomModal">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="csvUrlInput">Option 1: Input CSV URL</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="csvUrlInput" class="form-input-text" 
+                 value="https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv" 
+                 placeholder="Enter raw CSV URL...">
+          <button id="btnFetchUrl" class="btn-custom-data" style="white-space: nowrap;">
+            <i class="fa-solid fa-download"></i> Fetch & Parse
+          </button>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-dim); margin-top: 5px;">
+          Works with raw Github URLs, raw data endpoints, or CORS-enabled CSV files.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Option 2: Upload Local CSV File</label>
+        <div class="file-dropzone" id="fileDropzone" onclick="document.getElementById('csvFileInput').click()">
+          <i class="fa-solid fa-file-csv" style="font-size: 32px; color: var(--primary-light); margin-bottom: 8px;"></i>
+          <p style="font-size: 13.5px; color: #cbd5e1;">Click to browse or drag & drop a .csv file here</p>
+          <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div id="previewSection" style="display: none; margin-top: 18px;">
+        <div class="form-group">
+          <label class="form-label" for="targetSelect">Select Target Variable (Y):</label>
+          <select id="targetSelect" class="form-input-text" style="cursor: pointer;">
+            <!-- Populated from columns -->
+          </select>
+        </div>
+
+        <label class="form-label">Data Preview (First 5 Rows):</label>
+        <div class="dataset-preview-table" id="previewTable">
+          <!-- Preview table -->
+        </div>
+
+        <button id="btnRunCustomEngine" class="btn-primary-action" style="margin-top: 18px;">
+          <i class="fa-solid fa-play"></i> Run In-Browser ML Engine
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-notice" id="toastNotice">
+    <i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="model_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
